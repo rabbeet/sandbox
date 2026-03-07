@@ -23,5 +23,5 @@ Schedule::command('scrapes:schedule')
 // Hourly artifact cleanup
 Schedule::command('scrapes:cleanup')->hourly();
 
-// Every 5 minutes: recheck open parser failures (Phase 5)
-// Schedule::command('repairs:recheck-open-failures')->everyFiveMinutes();
+// Every 5 minutes: recheck open parser failures
+Schedule::command('repairs:recheck-open-failures')->everyFiveMinutes();
