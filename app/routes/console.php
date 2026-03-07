@@ -20,8 +20,8 @@ Schedule::command('scrapes:schedule')
     ->withoutOverlapping()
     ->runInBackground();
 
-// Hourly artifact cleanup (Phase 2 stub - command added in next task)
-// Schedule::command('scrapes:cleanup')->hourly();
+// Hourly artifact cleanup
+Schedule::command('scrapes:cleanup')->hourly();
 
 // Every 5 minutes: recheck open parser failures (Phase 5)
 // Schedule::command('repairs:recheck-open-failures')->everyFiveMinutes();

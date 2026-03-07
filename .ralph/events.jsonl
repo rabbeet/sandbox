@@ -1,0 +1,2 @@
+{"payload":"phase2-task1: scrapes:schedule command + ScrapeAirportSourceJob + ScrapeRuntimeClient + NormalizeScrapePayloadJob stub - all syntax valid, scheduler registered, committed. Next: Node.js scraper runtime HTTP server (task-1772915701-34b7)","topic":"build.done","ts":"2026-03-07T20:39:13.491827144+00:00"}
+{"payload":"scraper-runtime contract aligned with PHP ScrapeRuntimeClient: port 3100, correct request/response fields, quality scorer added","topic":"task.done","ts":"2026-03-07T20:47:31.336874961+00:00"}

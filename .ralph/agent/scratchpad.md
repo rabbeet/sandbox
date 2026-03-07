@@ -57,3 +57,12 @@ Build an Airport Flight Board Platform per the tech spec in PROMPT.md.
 - Strategy: command queries active sources, checks interval, creates ScrapeJob, dispatches job with Redis distributed lock
 - ScrapeAirportSourceJob calls scraper runtime via HTTP POST, persists artifacts, dispatches NormalizeScrapePayloadJob
 - Next: Node.js scraper runtime HTTP server, cleanup/recheck commands
+
+### Iteration 4 (Phase 2, task 2): Node.js scraper runtime contract fix
+- Fixed contract mismatch between PHP ScrapeRuntimeClient and Node.js index.js
+- PHP sends: scrape_job_id, airport_iata, board_type, source_type, url, parser
+- Node.js now accepts that format and maps to internal: job_id, parser_definition
+- PHP expects: rows, row_count, quality_score, artifacts[] — now returned correctly
+- Added qualityScorer.js: required field coverage (0.5) + null rate (0.3) + duplicate rate (0.2)
+- Port changed 3000→3100 to match PHP config (scraper.runtime_url: http://localhost:3100)
+- Next: scrapes:cleanup + repairs:recheck-open-failures maintenance commands
