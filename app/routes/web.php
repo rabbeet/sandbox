@@ -14,4 +14,5 @@ Route::get('/', function () {
 */
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('airports', [DashboardController::class, 'airports'])->name('airports.index');
+    Route::get('airports/{airport}', [DashboardController::class, 'show'])->name('airports.show');
 });
