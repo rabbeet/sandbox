@@ -1,0 +1,18 @@
+# Laravel
+app/.env
+app/vendor/
+app/node_modules/
+app/storage/app/
+app/storage/framework/
+app/storage/logs/
+app/bootstrap/cache/
+
+# Scraper runtime
+scraper-runtime/node_modules/
+
+# Infra
+infra/.env
+
+# OS
+.DS_Store
+Thumbs.db
