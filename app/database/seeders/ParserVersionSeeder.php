@@ -123,11 +123,12 @@ class ParserVersionSeeder extends Seeder
                 );
 
                 $this->createParserVersion($source, 1, [
-                    'mode'        => 'json_endpoint',
-                    'data_key'    => 'items',
-                    'url_params'  => ['perPage' => '1000', 'page' => '1'],
-                    'row_filter'  => ['ad' => 'D'],
-                    'date_filter' => ['field' => 'dat', 'utc_offset_hours' => 3],
+                    'mode'          => 'json_endpoint',
+                    'data_key'      => 'items',
+                    'url_params'    => ['perPage' => '1000', 'page' => '1'],
+                    'auto_paginate' => true,
+                    'row_filter'    => ['ad' => 'D'],
+                    'date_filter'   => ['field' => 'dat', 'utc_offset_hours' => 3],
                     'field_map'   => [
                         'airline_iata'               => 'co.code',
                         'airline_name'               => 'co.name',
