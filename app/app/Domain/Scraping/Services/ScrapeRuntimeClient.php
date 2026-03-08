@@ -29,7 +29,7 @@ class ScrapeRuntimeClient
     {
         $payload = [
             'scrape_job_id' => $scrapeJobId,
-            'airport_iata'  => $source->airport->iata_code,
+            'airport_iata'  => $source->airport->iata,
             'board_type'    => $source->board_type,
             'source_type'   => $source->source_type,
             'url'           => $source->url,
@@ -39,7 +39,7 @@ class ScrapeRuntimeClient
         Log::info('ScrapeRuntimeClient: dispatching scrape', [
             'scrape_job_id' => $scrapeJobId,
             'source_id'     => $source->id,
-            'airport'       => $source->airport->iata_code,
+            'airport'       => $source->airport->iata,
         ]);
 
         try {

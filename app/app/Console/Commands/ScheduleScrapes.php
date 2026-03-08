@@ -51,6 +51,7 @@ class ScheduleScrapes extends Command
                     'airport_source_id' => $source->id,
                     'parser_version_id' => $source->activeParserVersion->id,
                     'status'            => 'pending',
+                    'triggered_by'      => 'scheduler',
                 ]);
 
                 $queue = $this->resolveQueue($source);
@@ -58,7 +59,7 @@ class ScheduleScrapes extends Command
                 ScrapeAirportSourceJob::dispatch($scrapeJob->id, $source->id)
                     ->onQueue($queue);
 
-                $this->line("  [ok] source {$source->id} ({$source->airport->iata_code}/{$source->board_type}) -> {$queue} job#{$scrapeJob->id}");
+                $this->line("  [ok] source {$source->id} ({$source->airport->iata}/{$source->board_type}) -> {$queue} job#{$scrapeJob->id}");
 
                 Log::info('scrapes:schedule dispatched', [
                     'source_id'     => $source->id,
@@ -106,7 +107,7 @@ class ScheduleScrapes extends Command
             'JFK', 'LHR', 'CDG', 'DXB', 'LAX', 'ATL', 'ORD', 'HND', 'PEK', 'SIN',
         ]);
 
-        if (in_array($source->airport->iata_code, $highPriorityIata, true)) {
+        if (in_array($source->airport->iata, $highPriorityIata, true)) {
             return self::HIGH_PRIORITY_QUEUE;
         }
 

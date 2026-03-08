@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class FlightCurrent extends Model
 {
@@ -15,10 +16,12 @@ class FlightCurrent extends Model
     protected $table = 'flights_current';
 
     protected $fillable = [
+        'flight_instance_id',
         'airport_id',
         'canonical_key',
         'board_type',
         'flight_number',
+        'operating_flight_number',
         'airline_iata',
         'airline_name',
         'origin_iata',
@@ -57,6 +60,11 @@ class FlightCurrent extends Model
         'last_seen_at' => 'datetime',
         'last_changed_at' => 'datetime',
     ];
+
+    public function flightInstance(): BelongsTo
+    {
+        return $this->belongsTo(FlightInstance::class);
+    }
 
     public function airport(): BelongsTo
     {

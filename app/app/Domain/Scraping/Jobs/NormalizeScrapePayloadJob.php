@@ -43,22 +43,27 @@ class NormalizeScrapePayloadJob implements ShouldQueue
             return;
         }
 
-        $airportIata      = $airport->iata;
-        $boardType        = $source->board_type;
-        $serviceDateLocal = now()->setTimezone($airport->timezone ?? 'UTC')->toDateString();
+        $airportIata         = $airport->iata;
+        $boardType           = $source->board_type;
+        $globalServiceDate   = now()->setTimezone($airport->timezone ?? 'UTC')->toDateString();
 
         $processed = 0;
 
         foreach ($this->rows as $row) {
             try {
+                // Resolve service_date_local at the system level — this is a system guarantee,
+                // not a parser discipline requirement. Priority order:
+                //   1. Explicit field from parser row (most reliable, supports multi-day boards)
+                //   2. Derived from local scheduled time in the row (handles midnight boundary
+                //      without requiring the parser to emit a separate date field)
+                //   3. Airport's current date in its timezone (last resort, logged as warning)
+                $serviceDateLocal = $this->resolveServiceDate($row, $boardType, $globalServiceDate);
+
                 $canonical = CanonicalKey::build($airportIata, $boardType, $serviceDateLocal, $row);
 
-                // Prefer service date from row when available
-                $rowDate = $row['service_date_local'] ?? $row['date'] ?? $serviceDateLocal;
+                $normalizedPayload = $this->normalize($row, $boardType, $serviceDateLocal);
 
-                $normalizedPayload = $this->normalize($row, $boardType, $rowDate);
-
-                FlightSnapshot::create([
+                $snapshot = FlightSnapshot::create([
                     'scrape_job_id'      => $this->scrapeJobId,
                     'canonical_key'      => $canonical,
                     'raw_payload'        => $row,
@@ -68,6 +73,7 @@ class NormalizeScrapePayloadJob implements ShouldQueue
                 UpdateFlightCurrentStateJob::dispatch(
                     $this->scrapeJobId,
                     $airport->id,
+                    $snapshot->id,    // snapshotId — wired to flight_instance_id inside the job
                     $canonical,
                     $normalizedPayload,
                 )->onQueue('state-update');
@@ -118,6 +124,56 @@ class NormalizeScrapePayloadJob implements ShouldQueue
             'status_raw'                 => $row['status_raw'] ?? $row['status'] ?? null,
             'status_normalized'          => $this->normalizeStatus($row['status_raw'] ?? $row['status'] ?? ''),
         ];
+    }
+
+    /**
+     * Resolve the operational service date for a flight row.
+     *
+     * This is a system-level derivation — identity stability must not depend on
+     * parsers emitting a specific field. The midnight boundary is handled by
+     * extracting the date from the local scheduled time when present.
+     *
+     * Priority:
+     *   1. service_date_local / date field from the row (explicit, most reliable)
+     *   2. Date portion of scheduled_*_at_local (system-derived, handles midnight)
+     *   3. Airport's current date in its timezone (last resort — emits warning so
+     *      the gap is surfaced as a data-quality incident, not silently swallowed)
+     */
+    private function resolveServiceDate(array $row, string $boardType, string $globalServiceDate): string
+    {
+        // 1. Explicit field.
+        if (! empty($row['service_date_local'])) {
+            return $row['service_date_local'];
+        }
+        if (! empty($row['date'])) {
+            return $row['date'];
+        }
+
+        // 2. Derive from local scheduled time — handles midnight boundary at the system level.
+        //    A flight at 23:50 local will have service_date derived from "23:50" not from now().
+        $localTimeField = $boardType === 'arrivals'
+            ? ($row['scheduled_arrival_at_local'] ?? null)
+            : ($row['scheduled_departure_at_local'] ?? null);
+
+        if (! empty($localTimeField)) {
+            try {
+                return (new \DateTimeImmutable($localTimeField))->format('Y-m-d');
+            } catch (\Throwable) {
+                // Malformed local time — fall through to last resort.
+            }
+        }
+
+        // 3. Last resort: airport's current date.
+        //    Logged at warning level so this surfaces as a data-quality incident.
+        Log::warning('NormalizeScrapePayloadJob: could not derive service_date_local for row', [
+            'scrape_job_id' => $this->scrapeJobId,
+            'flight_number' => $row['flight_number'] ?? $row['flightNumber'] ?? '?',
+            'board_type'    => $boardType,
+            'inferred_date' => $globalServiceDate,
+            'action'        => 'parser should emit scheduled_*_at_local or service_date_local',
+        ]);
+
+        return $globalServiceDate;
     }
 
     private function toUtc(?string $value): ?string

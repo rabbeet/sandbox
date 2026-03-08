@@ -25,3 +25,15 @@ Schedule::command('scrapes:cleanup')->hourly();
 
 // Every 5 minutes: recheck open parser failures
 Schedule::command('repairs:recheck-open-failures')->everyFiveMinutes();
+
+// Every 5 minutes: check flight identity layer health
+// Emits structured log event=flight_identity_health with per-counter fields.
+// Non-zero exit code when orphaned_snapshots / duplicate_instances / duplicate_currents > 0.
+Schedule::command('flights:monitor-identity-health')
+    ->everyFiveMinutes()
+    ->runInBackground()
+    ->onFailure(function () {
+        \Illuminate\Support\Facades\Log::error('flight_identity_health: scheduled check returned non-zero exit', [
+            'event' => 'flight_identity_health_check_failed',
+        ]);
+    });

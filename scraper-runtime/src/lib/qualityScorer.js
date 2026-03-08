@@ -8,23 +8,69 @@
  *   - Duplicate rate (by flight_number)
  */
 
-// Fields that must be present for a flight row to be considered complete
-const REQUIRED_FIELDS = [
-    'flight_number',
-    'scheduled_time',
-    'status_raw',
-];
+/**
+ * Field aliases: parsers may emit camelCase or short names.
+ * Normalise to the canonical snake_case field names the normaliser expects
+ * before checking required field coverage.
+ */
+const FIELD_ALIASES = {
+    flightNumber:        'flight_number',
+    operatingFlightNumber: 'operating_flight_number',
+    scheduledDeparture:  'scheduled_departure_at_utc',
+    scheduledArrival:    'scheduled_arrival_at_utc',
+    estimatedDeparture:  'estimated_departure_at_utc',
+    estimatedArrival:    'estimated_arrival_at_utc',
+    actualDeparture:     'actual_departure_at_utc',
+    actualArrival:       'actual_arrival_at_utc',
+    status:              'status_raw',
+    gate:                'departure_gate',
+    belt:                'baggage_belt',
+    from:                'origin_iata',
+    to:                  'destination_iata',
+};
 
-function calculateQualityScore(rows, parser_definition) {
+/**
+ * Return a new row object with camelCase / alias field names resolved to their
+ * canonical snake_case equivalents. Original keys are preserved so existing
+ * fields are not lost.
+ */
+function normaliseRowAliases(row) {
+    const out = { ...row };
+    for (const [alias, canonical] of Object.entries(FIELD_ALIASES)) {
+        if (out[alias] !== undefined && out[canonical] === undefined) {
+            out[canonical] = out[alias];
+        }
+    }
+    return out;
+}
+
+/**
+ * Default required fields vary by board type to match what the normaliser
+ * actually stores (scheduled_departure_at_utc vs scheduled_arrival_at_utc).
+ * Parsers can override via parser_definition.required_fields.
+ */
+function getDefaultRequiredFields(board_type) {
+    const scheduledTimeField = board_type === 'arrivals'
+        ? 'scheduled_arrival_at_utc'
+        : 'scheduled_departure_at_utc';
+
+    return ['flight_number', scheduledTimeField, 'status_raw'];
+}
+
+function calculateQualityScore(rows, parser_definition, board_type) {
     if (!rows || rows.length === 0) {
         return 0.0;
     }
 
-    const requiredFields = parser_definition.required_fields || REQUIRED_FIELDS;
+    const requiredFields = parser_definition.required_fields
+        || getDefaultRequiredFields(board_type || 'departures');
+
+    // Normalise aliases before checking — parsers may emit flightNumber, status, etc.
+    const normalisedRows = rows.map(normaliseRowAliases);
 
     // 1. Required field coverage (weight 0.5)
     let requiredHits = 0;
-    for (const row of rows) {
+    for (const row of normalisedRows) {
         for (const field of requiredFields) {
             if (row[field] != null && row[field] !== '') {
                 requiredHits++;
@@ -32,14 +78,14 @@ function calculateQualityScore(rows, parser_definition) {
         }
     }
     const requiredCoverage = requiredFields.length > 0
-        ? requiredHits / (rows.length * requiredFields.length)
+        ? requiredHits / (normalisedRows.length * requiredFields.length)
         : 1.0;
 
-    // 2. Overall null rate (weight 0.3)
-    const allFields = Object.keys(rows[0] || {});
+    // 2. Overall null rate across all fields (weight 0.3)
+    const allFields = Object.keys(normalisedRows[0] || {});
     let nullCount = 0;
     let totalCells = 0;
-    for (const row of rows) {
+    for (const row of normalisedRows) {
         for (const field of allFields) {
             totalCells++;
             if (row[field] == null || row[field] === '') {
@@ -51,9 +97,10 @@ function calculateQualityScore(rows, parser_definition) {
     const nullScore = 1.0 - nullRate;
 
     // 3. Duplicate rate by flight_number (weight 0.2)
+    // Use normalised rows so flightNumber alias is resolved to flight_number.
     const seenFlightNumbers = new Set();
     let duplicates = 0;
-    for (const row of rows) {
+    for (const row of normalisedRows) {
         const key = row.flight_number;
         if (key == null) continue;
         if (seenFlightNumbers.has(key)) {
@@ -70,4 +117,4 @@ function calculateQualityScore(rows, parser_definition) {
     return Math.round(score * 100) / 100;
 }
 
-module.exports = { calculateQualityScore };
+module.exports = { calculateQualityScore, normaliseRowAliases, getDefaultRequiredFields };

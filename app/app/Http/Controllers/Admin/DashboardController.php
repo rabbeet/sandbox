@@ -191,9 +191,12 @@ class DashboardController extends Controller
                 ->latest('completed_at')
                 ->value('completed_at');
 
-            // 24h success rate
+            // 24h success rate — count jobs that *completed* in the last 24 hours.
+            // Using completed_at (not created_at) ensures a job that was queued yesterday
+            // but ran today is counted in today's window, and jobs that never completed
+            // (still pending/running) are excluded from the denominator.
             $jobs24h = ScrapeJob::where('airport_source_id', $source->id)
-                ->where('created_at', '>=', now()->subDay())
+                ->where('completed_at', '>=', now()->subDay())
                 ->selectRaw('status, COUNT(*) as cnt')
                 ->groupBy('status')
                 ->pluck('cnt', 'status');
@@ -204,9 +207,11 @@ class DashboardController extends Controller
                 ? round($success24h / $total24h * 100, 1)
                 : null;
 
-            // Latest run stats
+            // Latest run stats — order by completed_at so we get the most recently
+            // *finished* job, not the most recently *enqueued* one (which may still be running).
             $latestJob = ScrapeJob::where('airport_source_id', $source->id)
-                ->latest('created_at')
+                ->whereNotNull('completed_at')
+                ->latest('completed_at')
                 ->first(['row_count', 'status', 'completed_at', 'error_code']);
 
             return [

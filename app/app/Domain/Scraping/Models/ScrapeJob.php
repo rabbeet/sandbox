@@ -24,6 +24,7 @@ class ScrapeJob extends Model
         'quality_score',
         'error_code',
         'error_message',
+        'triggered_by',
     ];
 
     protected $casts = [

@@ -25,10 +25,12 @@ async function scrapeHandler({ job_id, airport_iata, board_type, source_type, ur
     const handler = DSL_MODE_HANDLERS[mode];
 
     // Parsers return { rows, artifact: { html, screenshot_path, har } }
-    const raw = await handler({ source_id: null, url, parser_definition, job_id });
+    const raw = await handler({ source_id: null, url, parser_definition, job_id, board_type });
 
     const rows = raw.rows || [];
-    const quality_score = calculateQualityScore(rows, parser_definition);
+    // Pass board_type so the scorer uses the correct board-specific required fields
+    // (scheduled_departure_at_utc for departures, scheduled_arrival_at_utc for arrivals).
+    const quality_score = calculateQualityScore(rows, parser_definition, board_type);
 
     // Normalize artifact (singular) into artifacts[] array expected by PHP
     const artifacts = buildArtifactsList(raw.artifact || {});
@@ -43,7 +45,14 @@ async function scrapeHandler({ job_id, airport_iata, board_type, source_type, ur
 
 /**
  * Convert the parser's { html, screenshot_path, har } into the
- * PHP-expected array of { type, storage_path, size_bytes } entries.
+ * PHP-expected array of { type, storage_path, size_bytes, expires_at } entries.
+ *
+ * Retention policy:
+ *   screenshots  — 30 days  (large binary; useful for debugging recent regressions only)
+ *   html / har   — 90 days  (text; used for parser replays and audit trails)
+ *
+ * expires_at is an ISO 8601 UTC string. PHP persists it to scrape_artifacts.expires_at
+ * and the scrapes:cleanup command uses it to purge expired rows and storage files.
  */
 function buildArtifactsList(artifact) {
     const list = [];
@@ -53,6 +62,7 @@ function buildArtifactsList(artifact) {
             type: 'html',
             storage_path: artifact.html_path || null,
             size_bytes: Buffer.byteLength(artifact.html, 'utf8'),
+            expires_at: expiresAt(90),
         });
     }
 
@@ -61,6 +71,7 @@ function buildArtifactsList(artifact) {
             type: 'screenshot',
             storage_path: artifact.screenshot_path,
             size_bytes: null,
+            expires_at: expiresAt(30),
         });
     }
 
@@ -69,10 +80,22 @@ function buildArtifactsList(artifact) {
             type: 'har',
             storage_path: artifact.har.path || null,
             size_bytes: null,
+            expires_at: expiresAt(90),
         });
     }
 
     return list;
+}
+
+/**
+ * Return an ISO 8601 UTC timestamp `days` calendar days from now.
+ * @param {number} days
+ * @returns {string}
+ */
+function expiresAt(days) {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString();
 }
 
 module.exports = { scrapeHandler };

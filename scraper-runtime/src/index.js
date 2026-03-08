@@ -6,8 +6,7 @@ const logger = require('./lib/logger');
 const app = express();
 app.use(express.json({ limit: '10mb' }));
 
-// Default port matches PHP ScrapeRuntimeClient (scraper.runtime_url: http://localhost:3100)
-const PORT = process.env.PORT || 3100;
+const PORT = process.env.PORT || 3000;
 
 /**
  * POST /scrape
