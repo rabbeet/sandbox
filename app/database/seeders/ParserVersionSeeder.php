@@ -110,31 +110,38 @@ class ParserVersionSeeder extends Seeder
                 ]);
             }
 
-            // SVO: Playwright cards parser (departures)
+            // SVO: JSON endpoint (Bitrix timetable, departures)
             if ($airport->iata === 'SVO') {
                 $source = AirportSource::firstOrCreate(
                     ['airport_id' => $airport->id, 'board_type' => 'departures'],
                     [
-                        'source_type' => 'playwright_cards',
-                        'url' => 'https://www.svo.aero/en/timetable/departure/',
+                        'source_type' => 'json_endpoint',
+                        'url' => 'https://www.svo.aero/bitrix/timetable/',
                         'scrape_interval_minutes' => 15,
                         'is_active' => true,
                     ]
                 );
 
                 $this->createParserVersion($source, 1, [
-                    'mode' => 'playwright_cards',
-                    'wait_for' => '.flight-card',
-                    'card_selector' => '.flight-card',
-                    'fields' => [
-                        'flight_number' => ['selector' => '.flight-number', 'attr' => 'text'],
-                        'airline_name' => ['selector' => '.airline-name', 'attr' => 'text'],
-                        'destination_iata' => ['selector' => '.destination-code', 'attr' => 'text'],
-                        'scheduled_departure_local' => ['selector' => '.scheduled-time', 'attr' => 'text'],
-                        'departure_terminal' => ['selector' => '.terminal', 'attr' => 'text'],
-                        'departure_gate' => ['selector' => '.gate', 'attr' => 'text'],
-                        'status_raw' => ['selector' => '.status', 'attr' => 'text'],
+                    'mode'        => 'json_endpoint',
+                    'data_key'    => 'items',
+                    'url_params'  => ['perPage' => '1000', 'page' => '1'],
+                    'row_filter'  => ['ad' => 'D'],
+                    'date_filter' => ['field' => 'dat', 'utc_offset_hours' => 3],
+                    'field_map'   => [
+                        'airline_iata'               => 'co.code',
+                        'airline_name'               => 'co.name',
+                        'destination_iata'           => 'mar2.iata',
+                        'destination_name'           => 'mar2.name_en',
+                        'status_raw'                 => 'st.name_en',
+                        'departure_terminal'         => 'trm.name_en',
+                        'service_date_local'         => 'dat',
+                        'scheduled_departure_at_utc' => 't_st',
+                        'estimated_departure_at_utc' => 't_et',
+                        'actual_departure_at_utc'    => 't_at',
+                        'departure_gate'             => 'gate_id',
                     ],
+                    'computed_fields' => ['flight_number' => '{{co.code}}{{flt}}'],
                 ]);
             }
         }
