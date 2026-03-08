@@ -68,7 +68,12 @@ class AdminActionController extends Controller
                 ->where('is_active', true)
                 ->update(['is_active' => false, 'deactivated_at' => now()]);
 
-            $parserVersion->update(['is_active' => true, 'activated_at' => now()]);
+            // Use query builder (not Eloquent dirty-tracking) so is_active is always
+            // written even when the in-memory model already has is_active = true.
+            $source->parserVersions()
+                ->where('id', $parserVersion->id)
+                ->update(['is_active' => true, 'activated_at' => now()]);
+
             $source->update(['active_parser_version_id' => $parserVersion->id]);
         });
 
