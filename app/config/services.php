@@ -35,4 +35,19 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Operational Alerts
+    |--------------------------------------------------------------------------
+    |
+    | Webhook/key configuration for critical-failure alerting.
+    | Either or both channels may be configured; unconfigured channels are
+    | silently skipped by NotifyCriticalParserFailureJob.
+    |
+    */
+    'alerts' => [
+        'slack_webhook_url'     => env('ALERTS_SLACK_WEBHOOK_URL'),
+        'pagerduty_routing_key' => env('PAGERDUTY_ROUTING_KEY'),
+    ],
+
 ];
