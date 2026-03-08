@@ -16,9 +16,15 @@ class AirportsIndexTest extends TestCase
     /** Send request as an Inertia XHR to get JSON props instead of full HTML. */
     private function inertiaGet(string $url)
     {
-        return $this->withHeaders([
-            'X-Inertia' => 'true',
-        ])->get($url);
+        $manifest = public_path('build/manifest.json');
+        $version  = file_exists($manifest) ? hash_file('xxh128', $manifest) : null;
+
+        $headers = ['X-Inertia' => 'true'];
+        if ($version) {
+            $headers['X-Inertia-Version'] = $version;
+        }
+
+        return $this->withHeaders($headers)->get($url);
     }
 
     public function test_airports_index_returns_inertia_response(): void

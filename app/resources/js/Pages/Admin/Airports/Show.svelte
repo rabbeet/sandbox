@@ -206,7 +206,11 @@
               <tr class="hover:bg-gray-50">
                 <td class="px-4 py-2 font-mono font-semibold">{f.flight_number}</td>
                 <td class="px-4 py-2 capitalize text-xs">{f.board_type}</td>
-                <td class="px-4 py-2 font-mono text-xs">{f.origin_iata ?? '—'} → {f.destination_iata ?? '—'}</td>
+                <td class="px-4 py-2 font-mono text-xs">
+                  {f.board_type === 'departures' ? (f.origin_iata ?? airport.iata) : (f.origin_iata ?? '—')}
+                  →
+                  {f.board_type === 'arrivals' ? (f.destination_iata ?? airport.iata) : (f.destination_iata ?? '—')}
+                </td>
                 <td class="px-4 py-2 text-xs text-gray-500">{fmt(f.scheduled_departure_at_utc)}</td>
                 <td class="px-4 py-2 text-xs text-gray-500">{fmt(f.estimated_departure_at_utc)}</td>
                 <td class="px-4 py-2 font-mono text-xs">{f.departure_gate ?? f.arrival_gate ?? '—'}</td>

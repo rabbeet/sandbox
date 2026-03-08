@@ -19,7 +19,15 @@ class AirportDetailTest extends TestCase
 
     private function inertiaGet(string $url)
     {
-        return $this->withHeaders(['X-Inertia' => 'true'])->get($url);
+        $manifest = public_path('build/manifest.json');
+        $version  = file_exists($manifest) ? hash_file('xxh128', $manifest) : null;
+
+        $headers = ['X-Inertia' => 'true'];
+        if ($version) {
+            $headers['X-Inertia-Version'] = $version;
+        }
+
+        return $this->withHeaders($headers)->get($url);
     }
 
     private function makeAirport(string $iata = 'JFK'): Airport
