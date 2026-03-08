@@ -26,6 +26,13 @@ const axios = require('axios');
  *                              Supports one placeholder: {{today}} → UTC date YYYY-MM-DD.
  *                              Useful for APIs that require a date range parameter.
  *
+ *   date_filter     {object}   { field, utc_offset_hours }
+ *                              Keeps only rows where the date portion of `field` (an ISO
+ *                              datetime string) matches today's date in the given UTC offset.
+ *                              Example: { "field": "dat", "utc_offset_hours": 3 } keeps
+ *                              rows where dat's date = today in UTC+3 (Moscow time).
+ *                              Applied after row_filter.
+ *
  *   headers         {object}   Extra HTTP request headers.
  */
 async function jsonEndpointParser({ url, parser_definition }) {
@@ -33,6 +40,7 @@ async function jsonEndpointParser({ url, parser_definition }) {
         field_map       = {},
         computed_fields = {},
         row_filter      = {},
+        date_filter     = null,
         url_params      = {},
         data_key,
         headers         = {},
@@ -47,9 +55,19 @@ async function jsonEndpointParser({ url, parser_definition }) {
 
     // Client-side row filter (simple equality on raw item fields).
     const filterEntries = Object.entries(row_filter);
-    const filtered = filterEntries.length > 0
+    let filtered = filterEntries.length > 0
         ? items.filter(item => filterEntries.every(([field, value]) => item[field] === value))
         : items;
+
+    // Date filter: keep only rows matching today in the specified UTC offset.
+    if (date_filter && date_filter.field) {
+        const offsetMs = (date_filter.utc_offset_hours || 0) * 60 * 60 * 1000;
+        const todayLocal = new Date(Date.now() + offsetMs).toISOString().slice(0, 10);
+        filtered = filtered.filter(item => {
+            const val = item[date_filter.field];
+            return val && String(val).slice(0, 10) === todayLocal;
+        });
+    }
 
     const rows = filtered.map(item => {
         const row = {};
