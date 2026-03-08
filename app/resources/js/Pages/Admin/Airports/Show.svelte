@@ -1,4 +1,6 @@
 <script>
+  import { router, usePage } from '@inertiajs/svelte';
+
   export let airport = {};
   export let sources = [];
   export let recent_jobs = [];
@@ -6,6 +8,10 @@
   export let recent_changes = [];
   export let artifacts = [];
   export let failures = [];
+
+  const page = usePage();
+
+  $: flash = $page.props.flash ?? {};
 
   function fmt(iso) {
     if (!iso) return '—';
@@ -37,6 +43,18 @@
     if (mins > 15) return 'text-yellow-600';
     return 'text-gray-600';
   }
+
+  function triggerScrape(sourceId) {
+    router.post(`/admin/sources/${sourceId}/scrape`, {}, { preserveScroll: true });
+  }
+
+  function activateParser(sourceId, pvId) {
+    router.post(`/admin/sources/${sourceId}/parser-versions/${pvId}/activate`, {}, { preserveScroll: true });
+  }
+
+  function updateFailure(failureId, status) {
+    router.patch(`/admin/failures/${failureId}`, { status }, { preserveScroll: true });
+  }
 </script>
 
 <svelte:head>
@@ -61,6 +79,18 @@
     </span>
   </div>
 
+  <!-- Flash messages -->
+  {#if flash.success}
+    <div class="rounded-lg px-4 py-3 bg-green-50 border border-green-200 text-green-800 text-sm">
+      {flash.success}
+    </div>
+  {/if}
+  {#if flash.error}
+    <div class="rounded-lg px-4 py-3 bg-red-50 border border-red-200 text-red-800 text-sm">
+      {flash.error}
+    </div>
+  {/if}
+
   <!-- Source Configuration -->
   <section>
     <h2 class="text-lg font-semibold mb-3">Source Configuration</h2>
@@ -74,7 +104,13 @@
               <span class="font-mono text-sm font-bold capitalize">{src.board_type}</span>
               <span class="text-xs bg-gray-100 rounded px-2 py-0.5">{src.source_type}</span>
               <span class="text-xs px-2 py-0.5 rounded-full {src.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}">{src.is_active ? 'Active' : 'Inactive'}</span>
-              <span class="ml-auto text-xs text-gray-400">every {src.scrape_interval_minutes}m</span>
+              <span class="text-xs text-gray-400">every {src.scrape_interval_minutes}m</span>
+              <button
+                class="ml-auto text-xs px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                on:click={() => triggerScrape(src.id)}
+              >
+                Trigger Scrape
+              </button>
             </div>
             <p class="text-xs text-gray-500 font-mono break-all mb-3">{src.url}</p>
 
@@ -84,10 +120,20 @@
                 <p class="text-xs text-gray-500 mb-1">Parser versions (active: {src.active_parser_version ?? '—'})</p>
                 <div class="flex flex-wrap gap-2">
                   {#each src.parser_versions as pv}
-                    <span class="text-xs px-2 py-0.5 rounded border {pv.is_active ? 'border-green-400 bg-green-50 text-green-700 font-semibold' : 'border-gray-200 text-gray-500'}">
-                      v{pv.version}
-                      {#if pv.is_active} ✓{/if}
-                    </span>
+                    <div class="flex items-center gap-1">
+                      <span class="text-xs px-2 py-0.5 rounded border {pv.is_active ? 'border-green-400 bg-green-50 text-green-700 font-semibold' : 'border-gray-200 text-gray-500'}">
+                        v{pv.version}
+                        {#if pv.is_active} ✓{/if}
+                      </span>
+                      {#if !pv.is_active}
+                        <button
+                          class="text-xs px-2 py-0.5 rounded border border-blue-300 text-blue-600 hover:bg-blue-50"
+                          on:click={() => activateParser(src.id, pv.id)}
+                        >
+                          Activate
+                        </button>
+                      {/if}
+                    </div>
                   {/each}
                 </div>
               </div>
@@ -256,6 +302,7 @@
               <th class="px-4 py-2 text-left font-semibold text-gray-600">Status</th>
               <th class="px-4 py-2 text-left font-semibold text-gray-600">Resolved</th>
               <th class="px-4 py-2 text-left font-semibold text-gray-600">Created</th>
+              <th class="px-4 py-2 text-left font-semibold text-gray-600">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100 bg-white">
@@ -269,6 +316,28 @@
                 <td class="px-4 py-2 text-xs font-mono">{f.status ?? '—'}</td>
                 <td class="px-4 py-2 text-xs text-gray-500">{fmt(f.resolved_at)}</td>
                 <td class="px-4 py-2 text-xs text-gray-500">{fmt(f.created_at)}</td>
+                <td class="px-4 py-2">
+                  {#if !['repaired', 'ignored'].includes(f.status)}
+                    <div class="flex gap-1">
+                      {#if f.status === 'open'}
+                        <button
+                          class="text-xs px-2 py-0.5 rounded border border-yellow-400 text-yellow-700 hover:bg-yellow-50"
+                          on:click={() => updateFailure(f.id, 'investigating')}
+                        >Investigating</button>
+                      {/if}
+                      <button
+                        class="text-xs px-2 py-0.5 rounded border border-green-400 text-green-700 hover:bg-green-50"
+                        on:click={() => updateFailure(f.id, 'repaired')}
+                      >Repaired</button>
+                      <button
+                        class="text-xs px-2 py-0.5 rounded border border-gray-300 text-gray-500 hover:bg-gray-50"
+                        on:click={() => updateFailure(f.id, 'ignored')}
+                      >Ignore</button>
+                    </div>
+                  {:else}
+                    <span class="text-xs text-gray-400 italic">terminal</span>
+                  {/if}
+                </td>
               </tr>
             {/each}
           </tbody>
