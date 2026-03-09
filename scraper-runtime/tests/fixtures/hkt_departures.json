@@ -1,0 +1,26 @@
+{
+  "flights": [
+    {
+      "flightno": "FD3080",
+      "airline_code": "FD",
+      "airline_name": "Thai AirAsia",
+      "dest_code": "DMK",
+      "dest_name": "Don Mueang",
+      "status": "On Time",
+      "terminal": "1",
+      "deptime": "2026-03-09T06:00:00",
+      "gate": "A1"
+    },
+    {
+      "flightno": "TG206",
+      "airline_code": "TG",
+      "airline_name": "Thai Airways",
+      "dest_code": "BKK",
+      "dest_name": "Bangkok Suvarnabhumi",
+      "status": "Scheduled",
+      "terminal": "1",
+      "deptime": "2026-03-09T07:30:00",
+      "gate": "B3"
+    }
+  ]
+}

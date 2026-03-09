@@ -1,0 +1,27 @@
+{
+  "departure_flights": [
+    {
+      "flight_no": "VN1200",
+      "carrier": "VN",
+      "route": "HAN-SGN",
+      "scheduled_time": "2026-03-09T06:00:00",
+      "estimated_time": "--:--",
+      "status": "OPN",
+      "gate": "1",
+      "terminal": "T1",
+      "cki_row": "A1-A3"
+    },
+    {
+      "flight_no": "VJ560",
+      "carrier": "VJ",
+      "route": "HAN-DAD",
+      "scheduled_time": "2026-03-09T07:00:00",
+      "estimated_time": "--:--",
+      "status": "OPN",
+      "gate": "3",
+      "terminal": "T1",
+      "cki_row": "B5-B8"
+    }
+  ],
+  "arrival_flights": []
+}

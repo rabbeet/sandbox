@@ -1,0 +1,26 @@
+{
+  "flights": [
+    {
+      "flightno": "TG100",
+      "airline_code": "TG",
+      "airline_name": "Thai Airways",
+      "dest_code": "LHR",
+      "dest_name": "London Heathrow",
+      "status": "On Time",
+      "terminal": "D",
+      "deptime": "2026-03-09T00:20:00",
+      "gate": "G1"
+    },
+    {
+      "flightno": "EK375",
+      "airline_code": "EK",
+      "airline_name": "Emirates",
+      "dest_code": "DXB",
+      "dest_name": "Dubai",
+      "status": "Delayed",
+      "terminal": "D",
+      "deptime": "2026-03-09T01:10:00",
+      "gate": "H4"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "data": [
+    {
+      "flightNo": "MH002",
+      "airlineCode": "MH",
+      "airlineName": "Malaysia Airlines",
+      "destinationCode": "LHR",
+      "destinationName": "London Heathrow",
+      "status": "On Time",
+      "terminal": "KLIA Main",
+      "scheduledDeparture": "2026-03-09T00:05:00",
+      "gate": "C4"
+    },
+    {
+      "flightNo": "AK101",
+      "airlineCode": "AK",
+      "airlineName": "AirAsia",
+      "destinationCode": "SIN",
+      "destinationName": "Singapore Changi",
+      "status": "Scheduled",
+      "terminal": "KLIA2",
+      "scheduledDeparture": "2026-03-09T06:00:00",
+      "gate": "P12"
+    }
+  ]
+}
